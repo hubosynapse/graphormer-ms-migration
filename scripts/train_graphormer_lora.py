@@ -1,7 +1,7 @@
 import numpy as np
 import evaluate
 
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from transformers import GraphormerForGraphClassification
 from transformers.models.graphormer.collating_graphormer import GraphormerDataCollator
 from transformers import TrainingArguments, Trainer
@@ -46,8 +46,8 @@ if __name__ == "__main__":
 
 
     dataset = load_dataset("ogb/ogbg-molhiv")
-    train_dataset = dataset["train"]
-    eval_dataset = dataset["test"]
+    train_dataset = Dataset.from_dict(dataset["train"][:1000])
+    eval_dataset = Dataset.from_dict(dataset["test"][:100])
 
     data_collator = GraphormerDataCollator(on_the_fly_processing=True)
 
