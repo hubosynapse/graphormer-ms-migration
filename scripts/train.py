@@ -16,10 +16,6 @@ def compute_metrics(eval_pred):
 
 
 if __name__ == "__main__":
-    # ogbg_molhiv = load_dataset("graphs-datasets/ogbg-molhiv")
-    # # For the train set (replace by valid or test as needed)
-    # ogbg_molhiv_pg_list = [Data(graph) for graph in ogbg_molhiv["train"]]
-    # ogbg_molhiv_pg = DataLoader(ogbg_molhiv_pg_list)
 
     dataset = load_dataset("ogb/ogbg-molhiv")
 
@@ -31,6 +27,8 @@ if __name__ == "__main__":
 
     training_args = TrainingArguments(output_dir="test_trainer",
                                       remove_unused_columns=False,
+                                      per_device_train_batch_size=4,
+                                      fp16=True,
                                       evaluation_strategy="epoch")
 
     metric = evaluate.load("accuracy")
