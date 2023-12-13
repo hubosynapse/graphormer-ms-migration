@@ -18,8 +18,8 @@ def compute_metrics(eval_pred):
 if __name__ == "__main__":
 
     dataset = load_dataset("ogb/ogbg-molhiv")
-
     train_dataset = dataset["train"]
+    eval_dataset = dataset["test"]
 
     data_collator = GraphormerDataCollator(on_the_fly_processing=True)
 
@@ -36,6 +36,8 @@ if __name__ == "__main__":
     trainer = Trainer(model=model,
                       args=training_args,
                       train_dataset=train_dataset,
+                      eval_dataset=eval_dataset,
+                      compute_metrics=compute_metrics,
                       data_collator=data_collator)
 
     trainer.train()
