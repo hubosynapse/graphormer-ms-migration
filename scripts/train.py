@@ -6,8 +6,6 @@ from transformers import GraphormerForGraphClassification
 from transformers.models.graphormer.collating_graphormer import GraphormerDataCollator
 from transformers import TrainingArguments, Trainer
 
-from torch_geometric.data import Data
-from torch_geometric.loader import DataLoader
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
