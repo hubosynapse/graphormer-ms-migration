@@ -4,13 +4,16 @@ from os.path import join as pjoin
 
 import mindspore
 from mindspore.dataset import text, GeneratorDataset, transforms
-from mindspore import nn, context
+from mindspore import nn, ops, context
 
 from mindnlp.engine import Trainer, Evaluator
 from mindnlp.engine.callbacks import CheckpointCallback, BestModelCallback
 from mindnlp.metrics import Accuracy
-
-# from mindnlp.transformers import (GraphormerForGraphClassification, GraphormerDataCollator)
+from mindnlp import load_dataset
+from mindnlp.transformers import (
+    GraphormerForGraphClassification,
+    GraphormerDataCollator
+)
 
 
 def jsonl_file_iterator(file_path, column_names):
@@ -34,18 +37,44 @@ class GraphDataset(GeneratorDataset):
 
 
 if __name__ == "__main__":
-    data_dir = "../../graphormer-data/ogbg-molhiv/"
+    # data_dir = "../../graphormer-data/ogbg-molhiv/"
+    # column_names = ["edge_index", "edge_attr", "y", "num_nodes", "node_feat"]
+    # dataset_test = GraphDataset(pjoin(data_dir, 'test.jsonl'), column_names)
+
+    dataset = load_dataset("ogb/ogbg-molhiv")
+    dataset_train = dataset["train"]
+    dataset_val = dataset["validation"]
     column_names = ["edge_index", "edge_attr", "y", "num_nodes", "node_feat"]
-    dataset_test = GraphDataset(pjoin(data_dir, 'test.jsonl'), column_names)
+
+    data_collator = GraphormerDataCollator(on_the_fly_processing=True)
+
+    import numpy as np
+    import mindspore.dataset as ds
+
+    def my_generator():
+        for i in range(9):
+            yield i
+
+    def my_per_batch_map(col1, batch_info):
+        new_col1 = {"original_col1": col1, "index": np.arange(3)}
+        new_col2 = {"copied_col1": col1}
+        return new_col1, new_col2
+
+    # data = ds.GeneratorDataset(source=my_generator, column_names=["col1"])
+    # data = data.batch(batch_size=3, per_batch_map=my_per_batch_map, output_columns=["col1", "col2"])
+
+    dataset_val = dataset_val.batch(batch_size=3,
+                                    per_batch_map=data_collator,
+                                    input_columns=column_names,
+                                    output_columns=data_collator.output_columns)
+
+    dd = next(dataset_val.create_dict_iterator(num_epochs=1, output_numpy=True))
+    print(dd[0])
 
 
+"""
 
-    """
-    model = GraphormerForGraphClassification.from_pretrained("clefourrier/graphormer-base-pcqm4mv2", from_pt=True)
-    model.enable_recompute()
-
-    loss_fn = nn.CrossEntropyLoss()
-    optimizer = nn.Adam(model.trainable_params(), learning_rate=2e-5)
+    loss_fn = ops.cross_entropy
 
     metric = Accuracy()
     # define callbacks to save checkpoints
@@ -58,15 +87,23 @@ if __name__ == "__main__":
                                       ckpt_name='graphormer',
                                       auto_load=True)
 
+    model_dir = "../../pretrained_models/graphormer/graphormer-base-pcqm4mv2/"
+    # model = GraphormerForGraphClassification.from_pretrained("clefourrier/graphormer-base-pcqm4mv2", from_pt=True)
+    # model.save_pretrained("../../pretrained_models/graphormer/graphormer-base-pcqm4mv2/")
+    model = GraphormerForGraphClassification.from_pretrained(model_dir)
+
+    optimizer = nn.Adam(model.trainable_params(), learning_rate=2e-5)
+
     trainer = Trainer(network=model,
                       loss_fn=loss_fn,
                       train_dataset=dataset_train,
                       eval_dataset=dataset_val,
+
                       metrics=metric,
                       epochs=1,
                       optimizer=optimizer,
                       callbacks=[ckpoint_cb, best_model_cb],
-                      jit=True)
+                      jit=False)
 
     trainer.set_amp(level='O1')
 
@@ -74,8 +111,6 @@ if __name__ == "__main__":
 
     # start training
     trainer.run(tgt_columns="labels")
-"""
-
 
 
 # def predict(text, label=None):
@@ -96,3 +131,4 @@ if __name__ == "__main__":
 
 # for label, text in dataset_infer:
 #     predict(text, label)
+"""
