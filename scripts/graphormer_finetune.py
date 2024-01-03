@@ -48,31 +48,17 @@ if __name__ == "__main__":
 
     data_collator = GraphormerDataCollator(on_the_fly_processing=True)
 
-    import numpy as np
-    import mindspore.dataset as ds
-
-    def my_generator():
-        for i in range(9):
-            yield i
-
-    def my_per_batch_map(col1, batch_info):
-        new_col1 = {"original_col1": col1, "index": np.arange(3)}
-        new_col2 = {"copied_col1": col1}
-        return new_col1, new_col2
-
-    # data = ds.GeneratorDataset(source=my_generator, column_names=["col1"])
-    # data = data.batch(batch_size=3, per_batch_map=my_per_batch_map, output_columns=["col1", "col2"])
+    dataset_train = dataset_train.batch(batch_size=3,
+                                    per_batch_map=data_collator,
+                                    input_columns=column_names,
+                                    output_columns=data_collator.output_columns)
 
     dataset_val = dataset_val.batch(batch_size=3,
                                     per_batch_map=data_collator,
                                     input_columns=column_names,
                                     output_columns=data_collator.output_columns)
 
-    dd = next(dataset_val.create_dict_iterator(num_epochs=1, output_numpy=True))
-    print(dd[0])
-
-
-"""
+    # dd = next(dataset_val.create_dict_iterator(num_epochs=1, output_numpy=True))
 
     loss_fn = ops.cross_entropy
 
@@ -95,10 +81,8 @@ if __name__ == "__main__":
     optimizer = nn.Adam(model.trainable_params(), learning_rate=2e-5)
 
     trainer = Trainer(network=model,
-                      loss_fn=loss_fn,
                       train_dataset=dataset_train,
                       eval_dataset=dataset_val,
-
                       metrics=metric,
                       epochs=1,
                       optimizer=optimizer,
@@ -111,24 +95,3 @@ if __name__ == "__main__":
 
     # start training
     trainer.run(tgt_columns="labels")
-
-
-# def predict(text, label=None):
-#     label_map = {0: "消极", 1: "中性", 2: "积极"}
-
-#     text_tokenized = Tensor([tokenizer(text).input_ids])
-#     logits = model(text_tokenized)
-#     predict_label = logits[0].asnumpy().argmax()
-#     info = f"inputs: '{text}', predict: '{label_map[predict_label]}'"
-#     if label is not None:
-#         info += f" , label: '{label_map[label]}'"
-#     print(info)
-
-
-
-
-# from mindspore import Tensor
-
-# for label, text in dataset_infer:
-#     predict(text, label)
-"""
