@@ -36,12 +36,13 @@ class GraphDataset(GeneratorDataset):
         super().__init__(generator, column_names, **kwargs)
 
 
+
 if __name__ == "__main__":
     # data_dir = "../../graphormer-data/ogbg-molhiv/"
     # column_names = ["edge_index", "edge_attr", "y", "num_nodes", "node_feat"]
     # dataset_test = GraphDataset(pjoin(data_dir, 'test.jsonl'), column_names)
 
-    dataset = load_dataset("ogb/ogbg-molhiv")
+    dataset = load_dataset("../../graphormer-data/ogbg-molhiv/")
     dataset_train = dataset["train"]
     dataset_val = dataset["validation"]
     column_names = ["edge_index", "edge_attr", "y", "num_nodes", "node_feat"]
@@ -49,21 +50,16 @@ if __name__ == "__main__":
     data_collator = GraphormerDataCollator(on_the_fly_processing=True)
 
     dataset_train = dataset_train.batch(batch_size=3,
-                                    per_batch_map=data_collator,
-                                    input_columns=column_names,
-                                    output_columns=data_collator.output_columns)
+                                        per_batch_map=data_collator,
+                                        input_columns=column_names,
+                                        output_columns=data_collator.output_columns)
 
     dataset_val = dataset_val.batch(batch_size=3,
                                     per_batch_map=data_collator,
                                     input_columns=column_names,
                                     output_columns=data_collator.output_columns)
 
-    # dd = next(dataset_val.create_dict_iterator(num_epochs=1, output_numpy=True))
-
-    loss_fn = ops.cross_entropy
-
     metric = Accuracy()
-    # define callbacks to save checkpoints
     ckpoint_cb = CheckpointCallback(save_path='checkpoint',
                                     ckpt_name='graphormer',
                                     epochs=1,
@@ -78,7 +74,11 @@ if __name__ == "__main__":
     # model.save_pretrained("../../pretrained_models/graphormer/graphormer-base-pcqm4mv2/")
     model = GraphormerForGraphClassification.from_pretrained(model_dir)
 
-    optimizer = nn.Adam(model.trainable_params(), learning_rate=2e-5)
+    optimizer = nn.AdamWeightDecay(model.trainable_params(),
+                                   learning_rate=5e-5,
+                                   beta1=0.9,
+                                   beta2=0.999,
+                                   eps=1e-8)
 
     trainer = Trainer(network=model,
                       train_dataset=dataset_train,
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                       callbacks=[ckpoint_cb, best_model_cb],
                       jit=False)
 
-    trainer.set_amp(level='O1')
+    # trainer.set_amp(level='O1') # Mixed-precision Training
 
 
 
